@@ -136,12 +136,14 @@ public class Q1_12 {
                     havePerformedAction = true;
 
                     System.out.println("Computer take " + xor + " stones from heap " + (i+1));
+                    System.out.println("I think you already lose:)");
                     break;
                 }else if(xor < divideOfStone[i]){
                     divideOfStone[i] = xor;
                     havePerformedAction = true;
 
                     System.out.println("Computer take " + xor + " stones from heap " + (i+1));
+                    System.out.println("I think you already lose:)");
                     break;
                 }
             }
