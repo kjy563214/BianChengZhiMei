@@ -16,6 +16,7 @@ import java.util.function.Predicate;
  * 1. 如何随机范围内不重复全部数字的一种方法
  * 2. 最短路径检索
  * 3. 如何在此基础上加入转弯的算法
+ * 4. 如何费尽心思打印出很丑的棋盘
  */
 public class Q1_14 {
     public static void main(String[] args){
@@ -34,7 +35,7 @@ public class Q1_14 {
      */
     public static class Solution1{
 
-        private static final char[] CHAR_LIST = {
+        private static final char[] CHAR_LIST = { // 会出现的图案
                 '@', '#', '$', '%', '&',
                 '(', 'A', 'B', 'C', 'D',
                 'E', 'F', 'G', 'H', 'I',
@@ -42,28 +43,51 @@ public class Q1_14 {
                 'P', 'R', 'S', 'T', 'U',
                 'W', 'X', 'Y', 'Z', '?'
         };
-        private static final int MAX_SCALE = 8;
-        private static final int MIN_SCALE = 3;
+        private static final int MAX_SCALE = 8; // 最大棋盘
+        private static final int MIN_SCALE = 3; // 最小棋盘
 
-        char[][] board;
-        final int scale;
-        final int numOfCell;
+        char[][] board; // 棋盘数组
+        final int scale; // 用户选的大小
+        final int numOfCell; // 有多少个格子就是 scale^2
+        private List<Cell> path; // 用于打印
+        private Map<Character, List<Cell>> pairs; // 用于记录成对图案
 
         public Solution1(){
             this.scale = getScaleOfBoard();
 
             numOfCell = scale*scale;
             board = new char[scale+2][scale+2];
+            pairs = new HashMap<>();
 
             generateGameBoard();
 
             while (!isGameFinished()){
                 printBoard();
                 Cell[] cells = getUserSelection();
-                if (canEliminate(cells[0], cells[1])){
+                Cell[] remove = new Cell[2];
+                int count = 0;
+                if (canEliminate(cells[0], cells[1])){ // 移除消除的
+                    for (Cell c : pairs.get(board[cells[0].x][cells[0].y])){
+                        if ((c.x == cells[0].x && c.y == cells[0].y) ||
+                                (c.x == cells[1].x && c.y == cells[1].y)){
+                            remove[count++] = c;
+                        }
+                        if (count == 2) break;
+                    }
+                    pairs.get(board[cells[0].x][cells[0].y]).remove(remove[0]);
+                    pairs.get(board[cells[0].x][cells[0].y]).remove(remove[1]);
+
                     board[cells[0].x][cells[0].y] = ' ';
                     board[cells[1].x][cells[1].y] = ' ';
                 }
+
+                if (!canPlay()){
+                    System.out.println("Regenerating Board...");
+                    do {
+                        reGenerateBoard();
+                    }while (!canPlay());
+                }
+
             }
         }
 
@@ -126,6 +150,8 @@ public class Q1_14 {
             while (counter > 0){
                 char c = chars[cIndex];
 
+                List<Cell> cells = new ArrayList<>();
+                pairs.put(c, cells);
                 if (cIndex < chars.length-1){ // 前面的图案每次填充filNum组
                     for (int i=0;i<fillNUm;i++){
                         fillBoard(c, positionRemaining);
@@ -139,22 +165,6 @@ public class Q1_14 {
                 }
 
                 cIndex ++;
-            }
-        }
-
-        private void fillBoard(char c, List<List<Integer>> positionRemaining) {
-            for (int i = 0; i < 2; i++) { // 每次随机两个位置填充
-                int y;
-                do {
-                    y = (int) Math.floor(Math.random() * positionRemaining.size());
-                } while (positionRemaining.get(y).size() == 0);
-
-                int xIndex = (int) Math.floor(Math.random() * positionRemaining.get(y).size());
-                int x = positionRemaining.get(y).get(xIndex);
-
-                board[x][y+1] = c;
-
-                positionRemaining.get(y).remove(xIndex);
             }
         }
 
@@ -183,6 +193,24 @@ public class Q1_14 {
             return chars;
         }
 
+        private void fillBoard(char c, List<List<Integer>> positionRemaining) {
+            for (int i = 0; i < 2; i++) { // 每次随机两个位置填充
+                int y;
+                do {
+                    y = (int) Math.floor(Math.random() * positionRemaining.size());
+                } while (positionRemaining.get(y).size() == 0);
+
+                int xIndex = (int) Math.floor(Math.random() * positionRemaining.get(y).size());
+                int x = positionRemaining.get(y).get(xIndex);
+
+                board[x][y+1] = c;
+
+                pairs.get(c).add(new Cell(x, y+1));
+
+                positionRemaining.get(y).remove(xIndex);
+            }
+        }
+
         private boolean isGameFinished(){
             for (int i=1;i<scale;i++){
                 for (int j=1;j<scale;j++){
@@ -195,9 +223,20 @@ public class Q1_14 {
         }
 
         private void printBoard(){
-            for (char[] lint : board){
-                System.out.println(lint);
+            System.out.print("   ");
+            for (int i=1;i<scale+1;i++){
+                System.out.print(i);
             }
+            System.out.println("  ");
+            for (int i=0;i<scale+2;i++){
+                if (i!=0 && i!=scale+1) System.out.print(i + " ");
+                System.out.println(board[i]);
+            }
+            System.out.print("   ");
+            for (int i=1;i<scale+1;i++){
+                System.out.print(i);
+            }
+            System.out.println("  ");
         }
 
         private Cell[] getUserSelection(){
@@ -227,6 +266,7 @@ public class Q1_14 {
 
                     Cell cell2 = new Cell(Integer.parseInt(cell2String[1]),
                             Integer.parseInt(cell2String[0]));
+
                     if (cell1.getPattern() == ' '){
                         System.out.print(cell1 + " is empty. ");
                         throw new IllegalArgumentException();
@@ -256,17 +296,28 @@ public class Q1_14 {
                 return false;
             }
 
-            int i = minBendsLessThan2(cell1, cell2);
+            // 计算最小的转弯数
+            int bends = minBendsLessThan2(cell1, cell2);
 
-            return i != -1;
+            return bends < 3;
         }
 
+        /**
+         * 最短路径问题
+         * 首先创建队列，将起始点加进去，然后寻找四周相邻的空格子加进去，将队首出队列。
+         * 在队列非空时一直寻找队首格子相邻未找过的空格子加入队列知道寻找到目标点。
+         *
+         * 数组deep[][]与棋盘格子一一对应，每个点的数字表示与起始点的最短距离，-1表示未遍历过
+         *
+         * 在寻找最短路径过程中，将最短路径上的点加入path数组中，然后遍历path,记录当前格子的前前格子pre，
+         * 如果当前格子的x y 与pre 的x y 都不一样说明转了个弯
+         */
         private int minBendsLessThan2(Cell cell1, Cell cell2){
             // 开始判断最短路径的拐弯数
-            Queue<Cell> queue = new LinkedList<>();
+            Queue<Cell> queue = new LinkedList<>(); // 相邻格子队列
             queue.offer(new Cell(cell1.x, cell1.y));
 
-            int[][] deep = new int[scale+2][scale+2];
+            int[][] deep = new int[scale+2][scale+2]; // 记录路径长度棋盘
             for (int i=0;i<scale+2;i++){
                 for (int j=0;j<scale+2;j++){
                     deep[i][j] = -1;
@@ -278,7 +329,7 @@ public class Q1_14 {
             int[] dx = {-1, 1, 0, 0};
             int[] dy = {0, 0, -1, 1};
 
-            List<Cell> path = new ArrayList<>();
+            path = new ArrayList<>(); // 最短路径格子list
             path.add(cell1);
 
             while (queue.size() > 0){
@@ -290,17 +341,17 @@ public class Q1_14 {
 
                 for (int i=0;i<4;i++){
                     int x = cell.x + dx[i];
-                    int y = cell.y + dy[i];
-                    if (x >= 0 && x<=scale+1 && y>=0 && y<=scale+1
-                            && (board[x][y] == ' ' || (x==cell2.x && y==cell2.y))
-                            && deep[x][y] == -1){
+                    int y = cell.y + dy[i]; // 四周格子坐标
+                    if (x >= 0 && x<=scale+1 && y>=0 && y<=scale+1 // 不能超出边界
+                            && (board[x][y] == ' ' || (x==cell2.x && y==cell2.y)) // 必须是空格子或者终点格子
+                            && deep[x][y] == -1){ // 必须没有走过的格子
 
-                        deep[x][y]= deep[cell.x][cell.y] + 1;
+                        deep[x][y] = deep[cell.x][cell.y] + 1;
 
-                        if (deep[x][y] > path.size()-1){
+                        if (deep[x][y] > path.size()-1){ // 路径上新格子
                             path.add(cell);
                         }else{
-                            path.set(deep[x][y], cell);
+                            path.set(deep[x][y], cell); // 保证路径最短
                         }
 
                         queue.offer(new Cell(x,y));
@@ -311,16 +362,57 @@ public class Q1_14 {
             int bends = 0;
             Cell pre = path.get(0);
             for (int i=2;i<path.size();i++){
-                System.out.println(path.get(i).x + " " + path.get(i).y  + "." + pre.x + " " +pre.y);
                 if (path.get(i).x != pre.x && path.get(i).y != pre.y){
                     bends ++;
                 }
                 pre = path.get(i-1);
             }
 
-            System.out.println(bends);
+            return bends;
+        }
 
-            return deep[cell2.x][cell2.y];
+        /**
+         * 能否继续消除
+         */
+        private boolean canPlay(){
+            for (List<Cell> cells : pairs.values()){
+                for (int i=1;i<cells.size();i++){
+                    if (canEliminate(cells.get(i-1), cells.get(i))){
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void reGenerateBoard(){
+            char[][] newBoard = new char[scale+2][scale+2];
+            List<List<Integer>> positionRemaining = new LinkedList<>();
+            for (int i=1;i<=scale;i++){
+                List<Integer> column = new LinkedList<>();
+                for (int j=1;j<=scale;j++){
+                    column.add(j);
+                }
+                positionRemaining.add(column);
+            }
+
+            for (int i=1;i<scale+1;i++){
+                for (int j=1;j<scale+1;j++){
+                    if (board[i][j] != ' '){
+                        int y;
+                        do {
+                            y = (int) Math.floor(Math.random() * positionRemaining.size());
+                        } while (positionRemaining.get(y).size() == 0);
+
+                        int xIndex = (int) Math.floor(Math.random() * positionRemaining.get(y).size());
+                        int x = positionRemaining.get(y).get(xIndex);
+
+                        newBoard[x][y] = board[i][j];
+                    }
+                }
+            }
+
+            board = newBoard;
         }
 
         /**
