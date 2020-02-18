@@ -1,5 +1,4 @@
 import java.util.*;
-import java.util.function.Predicate;
 
 /**
  * 1.14 连连看游戏设计
@@ -16,7 +15,9 @@ import java.util.function.Predicate;
  * 1. 如何随机范围内不重复全部数字的一种方法
  * 2. 最短路径检索
  * 3. 如何在此基础上加入转弯的算法
- * 4. 如何费尽心思打印出很丑的棋盘
+ * 4. 如何费尽心思打印出很丑的棋盘(最后放弃了)
+ * 5. 随机数处理
+ * 6. 如何检验能否进行游戏(可以改进)
  */
 public class Q1_14 {
     public static void main(String[] args){
