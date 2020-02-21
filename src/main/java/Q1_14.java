@@ -34,7 +34,7 @@ public class Q1_14 {
      *   可以遍历一次棋盘找到有无死锁情况，或者一直保存每两个相同图案的最短路径，每次消去就更新数据
      * 4. 游戏模型参考构造函数结构
      */
-    public static class Solution1{
+    private static class Solution1{
 
         private static final char[] CHAR_LIST = { // 会出现的图案
                 '@', '#', '$', '%', '&',
